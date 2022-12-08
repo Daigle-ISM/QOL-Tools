@@ -1,0 +1,2 @@
+# VIM Files
+This folder has my .vimrc file. The main changes are to the clipboards, I prefer to have the x and d keys use the x and d registers respectively, and only explicit yanks to use the unnamed register (which I have set as the system clipboard).
