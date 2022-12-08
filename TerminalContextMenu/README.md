@@ -5,4 +5,4 @@ The original behaviour creates a new Terminal window every time. If you're used 
 
 The new behaviour creates a new tab in the existing Terminal window by adding `-w 0` to the command to start wt.exe. If multiple Terminal windows are open, the last one to have focus will get the new tab
 
-![Demo Video](TermDemo.mkv)
+https://user-images.githubusercontent.com/93410187/206585772-eab490e9-9aa8-4728-9286-ddededea427d.mp4
