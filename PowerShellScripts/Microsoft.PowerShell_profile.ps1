@@ -211,20 +211,6 @@ function Clean-Branches {
     git pull
     (git branch -vv).Split("`n") -replace "^\* "| Where-Object {$_ -match '\[.*gone\]'} | Foreach-Object {git branch -d $_.Trim().Split(" ")[0]}
 }
-# Pushes to remote, creates remote if it doesn't already exist
-function Push {
-	[CmdletBinding()]
-	
-	$Upstream = (git rev-parse --abbrev-ref 'HEAD@{u}')
-	$Branch = (git rev-parse --abbrev-ref HEAD)
-
-	if ([string]::IsNullOrWhiteSpace($Upstream)) {
-		git push --set-upstream origin $Branch
-	}
-	else {
-		git push
-	}
-}
 # Fetch and pull all branches. Great for running before doing a rebase or merge 
 function Pull {
 	git fetch --all
