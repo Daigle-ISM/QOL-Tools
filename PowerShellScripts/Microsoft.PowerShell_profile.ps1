@@ -191,7 +191,6 @@ function Get-RandomString {
     }
 }
 
-# Re-creates the basic functionality of the nix time command
 function Time {
     <#
     .SYNOPSIS
@@ -201,7 +200,6 @@ function Time {
         
         Commands that include piping or other flow control methods may cause issues, simply wrap them in quotes.
     #>
-    
     $ScriptBlock = [scriptblock]::Create(($args -Join " ") + " | Out-Default")
     Measure-Command $ScriptBlock
 }
