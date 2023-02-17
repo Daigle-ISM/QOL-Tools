@@ -218,16 +218,6 @@ function Clean-Branches {
     git pull
     (git branch -vv).Split("`n") -replace "^\* "| Where-Object {$_ -match '\[.*gone\]'} | Foreach-Object {git branch -d $_.Trim().Split(" ")[0]}
 }
-# Fetch and pull all branches. Great for running before doing a rebase or merge 
-function Pull {
-	git fetch --all
-	$CurrentBranch = (((git branch -vv).Split("`n") | Where-Object {$_ -match '^\s*\*'}) -replace "^\* ").Trim().Split(" ")[0]
-	(git branch -vv).Split("`n") | Where-Object {$_ -match '\[.*\]'} | Foreach-Object {
-		git checkout ($_ -replace "^\* ").Trim().Split(" ")[0]
-		git pull
-	}
-	git checkout $CurrentBranch
-}
 # Recursive code, recursively searches the current directory for files matching the provided RegEx expressions and opens them in code (assumes 'code' for vscode is added to your PATH)
 # Useful for repos with deep folder hierarchies where you know the name of the script you want to edit
 function rode {
