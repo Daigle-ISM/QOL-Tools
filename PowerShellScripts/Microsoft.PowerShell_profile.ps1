@@ -207,8 +207,8 @@ function Get-RandomString {
 
 # Re-creates the basic functionality of the nix time command
 function Time {
-    $ScriptBlock = [scriptblock]::Create([string](Join-String -InputObject $args -Separator " ") + " | Out-Default")
-    Measure-Command $ScriptBlock | Out-Default
+    $ScriptBlock = [scriptblock]::Create(($args -Join " ") + " | Out-Default")
+    Measure-Command $ScriptBlock
 }
 
 # Removes orphaned branches, does not affect branches that never had remotes
