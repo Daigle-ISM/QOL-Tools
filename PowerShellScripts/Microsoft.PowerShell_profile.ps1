@@ -1,3 +1,4 @@
+#region functions
 Function Enable-PoshGit {
     <#
     .SYNOPSIS
@@ -7,7 +8,7 @@ Function Enable-PoshGit {
 
         Is unfortunately very slow
     .NOTES
-        If the shell is not running as an admin, gsudo isn't installed, and posh-git isn't installed, it will have to be installed as an administrator
+        If the shell is not running as an admin, gsudo isn't installed, and posh-git isn't installed, posh-git will have to be installed as an administrator
     #>
     
     Write-Progress -Activity "Posh-Git" -Status "Configuring Posh-Git"
@@ -22,35 +23,20 @@ Function Enable-PoshGit {
         Set-PSRepository -Name 'PSGallery' -InstallationPolicy Trusted
         Write-Progress -Activity "Posh-Git" -Status "Installing Nuget package provider"
         Install-PackageProvider -Name Nuget -Force
-        Write-Progress -Activity "Posh-Git" -Status "Installing module"
-        Install-Module posh-git -Force
-        Write-Progress -Activity "Posh-Git" -Status "Importing Module"
-        Import-Module posh-git
     }
     # Sudo is available to get admin perms
     elseif (Get-Command sudo -ErrorAction SilentlyContinue) {
         Write-Progress -Activity "Posh-Git" -Status "Installing Posh-Git with sudo"
         sudo 'Write-Progress -Activity "Posh-Git" -Status "Setting PSGallery to trusted"; Set-PSRepository -Name "PSGallery" -InstallationPolicy Trusted; Write-Progress -Activity "Posh-Git" -Status "Installing Nuget package provider"; Install-PackageProvider -Name Nuget -Force; Write-Progress -Activity "Posh-Git" -Status "Installing module"; Install-Module posh-git -Force'
-        Write-Progress -Activity "Posh-Git" -Status "Importing Module"
-        Import-Module posh-git
     }
     # Everything else has failed
     else {
-        Write-Host "Unable to enable posh-git. Please run Install-Module posh-git"
+        throw "Unable to enable posh-git. Please run Install-Module posh-git as admin"
     }
+    Write-Progress -Activity "Posh-Git" -Status "Importing Module"
+    Import-Module posh-git
     Write-Progress -Activity "Posh-Git" -Completed
 }
-Enable-PoshGit 
-# I have vim installed which includes diff.exe, it's VERY different from Compare-Item
-Remove-Item alias:diff -Force
-# Windows doesn't have less, and it's what I prefer on nix
-New-Alias -Name Less -Value More
-# Touch is from nix
-New-Alias -Name touch -Value New-Item
-# Maps HKEY_USERS to hku:\
-New-Psdrive -name hku -PSProvider Registry -Root HKEY_USERS | Out-Null
-# Maps HKEY_CLASSES_ROOT to hkcr:\
-New-Psdrive -name hkcr -PSProvider Registry -Root HKEY_CLASSES_ROOT | Out-Null
 function Get-RandomString {
     <#
     .SYNOPSIS
@@ -82,7 +68,7 @@ function Get-RandomString {
         Get-RandomString -CharacterSet "12345"
         2555411421545253
 
-        But passed as an integer or an array of integers (int[]), integers refer to specific numbers:
+        But passed as an integer or an array of integers (int[]) the integers refer to specific characters:
         Get-RandomString -CharacterSet (1..5)
         ☺♣♦☻☻
     #>
@@ -207,21 +193,74 @@ function Get-RandomString {
 
 # Re-creates the basic functionality of the nix time command
 function Time {
+    <#
+    .SYNOPSIS
+        Re-creates the basic functionality of the nix time command
+    .NOTES
+        This is just here so if you try to run time it runs as expected. If this isn't already a habit, see instead Measure-Command.
+        
+        Commands that include piping or other flow control methods may cause issues, simply wrap them in quotes.
+    #>
+    
     $ScriptBlock = [scriptblock]::Create(($args -Join " ") + " | Out-Default")
     Measure-Command $ScriptBlock
 }
 
 # Removes orphaned branches, does not affect branches that never had remotes
 function Clean-Branches {
+    <#
+    .SYNOPSIS
+    Deletes any local branches for which the remote has been deleted
+    .DESCRIPTION
+    Switches you to your main branch (master or main)
+    .NOTES
+    Assumes it is being run in a git repository
+
+    Assumes that your default branch is either master or main. If you have non-default branches with these names it may check out the wrong branch
+
+    Uses git branch -d, not git branch -D. If a branch is not fully merged, you will receive a warning
+    #>
     git fetch --prune
-    git checkout ((git branch -vv).Split("`n") -replace "^\* " | Foreach-Object {$_.Trim().Split(" ")[0]} | Where-Object {$_ -match "master|main"})
+    git checkout ((git branch -vv).Split("`n") -replace "^\* " | Foreach-Object {$_.Trim().Split(" ")[0]} | Where-Object {$_ -eq "main" -or $_ -eq "master"})
     git pull
     (git branch -vv).Split("`n") -replace "^\* "| Where-Object {$_ -match '\[.*gone\]'} | Foreach-Object {git branch -d $_.Trim().Split(" ")[0]}
 }
-# Recursive code, recursively searches the current directory for files matching the provided RegEx expressions and opens them in code (assumes 'code' for vscode is added to your PATH)
-# Useful for repos with deep folder hierarchies where you know the name of the script you want to edit
 function rode {
+    <#
+    .SYNOPSIS
+        Recursively opens all files in the current directory that match the given pattern
+    .DESCRIPTION
+        Recursive code, recursively searches the current directory for files matching the provided RegEx expressions and opens them in code. Useful for repos with deep folder hierarchies where you know the name of the script you want to edit.
+    .NOTES
+        Assumes 'code' for vscode is added to your PATH
+    .EXAMPLE
+        rode .*settings\.xml$
+        Recursively opens any files ending with settings.xml
+    #>
 	foreach ($arg in $args) {
 		code (Get-ChildItem -Recurse | Where-Object Name -match $arg | Select-Object -ExpandProperty Fullname)
 	}
 }
+#endregion
+
+#region actions
+
+# Attempts to install and enable the Posh-Git add-on
+Enable-PoshGit 
+# Diff is by default an alias for compare-item. However diff.exe from vim behaves differently, and is part of my PATH
+# I remove this alias so I can choose what method I use to compare things
+Remove-Item alias:diff -Force
+# Less is much better than more. It lets you use j and k or the arrow keys to scroll up and down through content (which should sound familiar if you use vim)
+# and you can use / and ? to search for RegEx patterns
+# This of course won't work if your git install path is somewhere else
+# I'm generally avoiding using the exes from this folder, but if you want a lot of POSIX-like functionality, you could add it to your PATH
+New-Alias -Name Less -Value "C:\Program Files\Git\usr\bin\less.exe"
+# Touch is a POSIX tool that I'm in the habit of using to create new, empty files. I don't care about updating timestamps on existing files, or I would use
+# touch.exe from the above git folder
+New-Alias -Name touch -Value New-Item
+# Maps HKEY_USERS to hku:\
+New-Psdrive -name hku -PSProvider Registry -Root HKEY_USERS | Out-Null
+# Maps HKEY_CLASSES_ROOT to hkcr:\
+New-Psdrive -name hkcr -PSProvider Registry -Root HKEY_CLASSES_ROOT | Out-Null
+
+#endregion
