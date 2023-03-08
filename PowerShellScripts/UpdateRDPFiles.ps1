@@ -16,7 +16,7 @@ $Lines = @(
 $Files = Get-ChildItem -Recurse (Join-Path $env:LOCALAPPDATA "rdclientwpf") -Filter "*.rdp"
 foreach ($File in $Files) {
     # Read the file
-    $Content = Get-Content $File.FullName
+    $Content = Get-Content $File.FullName -Encoding unicode
     # Check if each line is in the file, if it isn't add it to the end
     foreach ($Line in $Lines) {
         if (!($Content | Select-String $Line)) {
