@@ -239,6 +239,183 @@ function rode {
 		code (Get-ChildItem -Recurse | Where-Object Name -match $arg | Select-Object -ExpandProperty Fullname)
 	}
 }
+function helpmsg {
+    <#
+    .SYNOPSIS
+        Looks up the net helpmsg error code for a given hex number
+    .DESCRIPTION
+        Treats the last four characters of a given string as a hexidecimal word, converts it to decimal, and runs net helpmsg on it.
+    .EXAMPLE
+        > helpmsg 5
+
+        Access is denied.
+    .EXAMPLE
+        > helpmsg 0x80070005
+
+        Access is denied.
+    .EXAMPLE
+        > helpmsg 0x8007232A
+
+        DNS server failure.
+    .PARAMETER Hex
+        A string representing the hex error code you were given
+    .NOTES
+        This converts hex to decimal. Don't use this with decimal errors, if you are entering the decimal error code directly and it has more than one digit you will get the wrong result. For example:
+        
+        > helpmsg 53
+
+        Fail on INT 24.
+
+        > net helpmsg 53
+
+        The network path was not found.
+
+        This is because 53 in hex is 83 in decimal. If you are looking for the helpmsg but already have the integer, use net helpmsg
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Position=1,Mandatory=$true)]
+        [string]
+        $Hex
+    )
+    # Add leading 0's until the string is at least 4 characters long
+    $Hex = $Hex.PadLeft(4,"0")
+
+    # Strip anything before the last four characters and convert to an unsigned integer
+    $Dec = [uint32]("0x" + $Hex.Substring($Hex.Length - 4, 4))
+
+    # Get the helpmsg
+    net helpmsg $Dec
+}
+function Tail {
+    <#
+    .SYNOPSIS
+        Print the lines at the end of a file
+    .DESCRIPTION
+        Prints the last (default: 10) lines of a given file to the console host (using write-host). Similar to the Unix/Linux command tail
+
+        This function provides the -Follow option, which is missing from Get-Content -Tail
+    .NOTES
+        This function may return the entire file if it is unable to identify any line endings. It looks for `n and `r
+
+        When using -Follow and -OutputToPipeline together you must send the 'q' key to stop following, if you use CTRL+C you will receive no output
+    .EXAMPLE
+        tail C:\var\log\program.log
+        Shows the last 10 lines of the program.log file
+    .EXAMPLE
+        tail C:\var\log\program.log -Follow
+        Shows the last 10 lines of the program.log file, then monitors the file for changes and prints any new lines appended until q is pressed
+    #>
+
+    [CmdletBinding()]
+    param (
+        # The path of the file to tail
+        [Parameter(Mandatory=$true,ParameterSetName="Path",Position=1)]
+        [string]
+        $Path,
+        # The number of lines to read
+        [Parameter(Position=2)]
+        [int]
+        $Lines = 10,
+        # Output appended data as the file grows
+        [Parameter()]
+        [switch]
+        $Follow,
+        # Output to the pipeline instead of standard output (equivalent of write-output instead of write-host)
+        [Parameter()]
+        [switch]
+        $OutputToPipeline
+    )
+
+    begin {
+        # Get the file handle
+        $File = Get-Item $Path -Force
+        
+        if ($Follow) {
+            Write-Progress -Activity "Press q to exit" -Status "Following $File"
+        }
+
+        # Create the file stream
+        $FS = [System.IO.FileStream]::new($File, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+
+        # Create a stream reader
+        $SR = [System.IO.StreamReader]::new($FS)
+
+        # Set the current position to the end of the stream -1 so the ReadByte() can read the last byte
+        $FS.Position = $FS.Length - 1
+
+        for ($i = 0; $i -lt $Lines;) {
+            try {
+                if ($FS.Position -eq 0) {# We are at the beginning of the file
+                    break
+                }
+                # Move to the previous byte
+                $FS.Position-=1
+                # If the current character is a return character increment the counter
+                [int]$Char = $FS.ReadByte()
+                # ReadByte() advances the position by a byte, move back to the current byte
+                $FS.Position-=1
+                $Prev = $false
+                if ($Char -eq 10) {
+                    $i++
+                    $Prev = $true
+                }
+                elseif ($Char -eq 13 -and $Prev -eq $false) {
+                    $i++
+                }
+                elseif ($Char -eq "`0") {
+                    $i++
+                }
+            }
+            catch {
+                break
+            }
+        }
+        # If it stopped on a linebreak (and not at the beginning of the file) do not read that break
+        if ($SR.BaseStream.Position -ne 0) {
+            $SR.BaseStream.Position+=1
+        }
+    }
+    process {
+        try {
+            do {
+                # Using ctrl+c to kill this loop means we can't get output to the pipeline, so we need another option
+                if ([Console]::KeyAvailable)
+                {
+                    if ([Console]::ReadKey($true).KeyChar -eq "q") {
+                        break
+                    }
+                }
+
+                [string]$Lines = $SR.ReadToEnd()
+
+                if ($OutputToPipeline) {
+                    [string]$RetVal += $Lines
+                }
+                else {
+                    Write-Host $Lines -NoNewline
+                }
+
+                # We need to sleep to avoid eating all the CPU cycles 
+                if ($Follow) {
+                    Start-Sleep -Milliseconds 200
+                }
+            }
+            # Only actually loop if -Follow was specified
+            while ($Follow)
+        }
+        finally {
+            # Leaving these open means the file will be locked
+            # This finally block will run even if there's an exception or if CTRL+C is used to close the loop
+            # I would like to use a clean block instead of this, but it doesn't exist in .NET Framework PowerShell
+            $SR.Dispose()
+            $FS.Dispose()
+        }
+    }
+    end {
+        return $RetVal
+    }
+}
 #endregion
 
 #region actions
