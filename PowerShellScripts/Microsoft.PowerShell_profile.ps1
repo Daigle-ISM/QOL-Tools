@@ -56,21 +56,21 @@ function Get-RandomString {
         Specifies an explicit set of characters to use to generate the random string.
         This is cast as an array of characters, passing an array of integers will result in the characters that correspond to those integers, not the integers themselves. Please see the examples for more details
     .EXAMPLE
-        Any combination of the named charactersets can be used, separated by commas:
         Get-RandomString -Characters LowerLetters, Symbols
         :a?c<b?c:fylq{>gut=
-
-        For custom charactersets, strings can be cast as character arrays just fine:
+        Any combination of the named charactersets can be used, separated by commas
+    .EXAMPLE
         Get-RandomString -CharacterSet "ABCDEF"
         ADFAFDDFCAACE
-
-        Integers are where you have to be careful. In a string they are cast as the expected characters:
+        For custom charactersets, strings can be cast as character arrays just fine:
+    .EXAMPLE
         Get-RandomString -CharacterSet "12345"
         2555411421545253
-
-        But passed as an integer or an array of integers (int[]) the integers refer to specific characters:
+        Integers are where you have to be careful. In a string they are cast as the expected characters
+    .EXAMPLE
         Get-RandomString -CharacterSet (1..5)
         ☺♣♦☻☻
+        But passed as an integer or an array of integers (int[]) the integers refer to specific characters
     #>
     [CmdletBinding(DefaultParameterSetName="Named")]
     param (
@@ -246,16 +246,13 @@ function helpmsg {
     .DESCRIPTION
         Treats the last four characters of a given string as a hexidecimal word, converts it to decimal, and runs net helpmsg on it.
     .EXAMPLE
-        > helpmsg 5
-
+        helpmsg 5
         Access is denied.
     .EXAMPLE
-        > helpmsg 0x80070005
-
+        helpmsg 0x80070005
         Access is denied.
     .EXAMPLE
-        > helpmsg 0x8007232A
-
+        helpmsg 0x8007232A
         DNS server failure.
     .PARAMETER Hex
         A string representing the hex error code you were given
