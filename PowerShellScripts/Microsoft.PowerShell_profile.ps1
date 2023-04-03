@@ -120,7 +120,6 @@ function Get-RandomString {
                 return [CharMap] | Get-Member -Static | Where-Object MemberType -eq "Property" | Select-Object -ExpandProperty Name
             }
         }
-        Write-Verbose "Building character map"
 
         # Build the character map with named sets
         if ($PSCmdlet.ParameterSetName -eq "Named") {
