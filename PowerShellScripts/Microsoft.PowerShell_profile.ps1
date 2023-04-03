@@ -85,7 +85,13 @@ function Get-RandomString {
         [switch]
         $AsSecureString,
         [Parameter(ParameterSetName="Named")]
-        [ValidateSet("Numbers","LowerLetters","UpperLetters","Letters","AlphaNumeric","Symbols","All")]
+        # If I wasn't making this compatible with PowerShell 5 I would be using IValidateSetValuesGenerator, see more info here: https://adamtheautomator.com/powershell-validateset/
+        # I'm instead doing everything the hard way, as per https://stackoverflow.com/a/74778399
+        [ValidateScript({return [bool]([CharMap]::GetValidValues().Contains($_))})]
+        [ArgumentCompleter({ 
+            param($cmd, $param, $wordToComplete) 
+            [CharMap]::GetValidValues() | Where-Object {$_.ToLower().StartsWith($WordToComplete.ToLower())}
+        })]
         [string[]]
         $Characters = "AlphaNumeric",
         [Parameter(ParameterSetName="Explicit")]
@@ -102,30 +108,33 @@ function Get-RandomString {
         }
         # Provides a basic map of characters
         class CharMap {
-            $Numbers = (48..57)
-            $LowerLetters = (97..122)
-            $UpperLetters = (65..90)
-            $Symbols = (33..47) + (58..64) + (91..96) + (123..126)
-            $Letters = $this.LowerLetters + $this.UpperLetters
-            $AlphaNumeric = $this.Numbers + $this.Letters
-            $All = $this.AlphaNumeric + $this.Symbols
+            static $Numbers = (48..57)
+            static $LowerLetters = (97..122)
+            static $UpperLetters = (65..90)
+            static $Symbols = (33..47) + (58..64) + (91..96) + (123..126)
+            static $Letters = [CharMap]::LowerLetters + [CharMap]::UpperLetters
+            static $AlphaNumeric = [CharMap]::Numbers + [CharMap]::Letters
+            static $All = [CharMap]::AlphaNumeric + [CharMap]::Symbols
+
+            static [String[]] GetValidValues() {
+                return [CharMap] | Get-Member -Static | Where-Object MemberType -eq "Property" | Select-Object -ExpandProperty Name
+            }
         }
         Write-Verbose "Building character map"
-        $CharMap = New-Object CharMap
 
         # Build the character map with named sets
         if ($PSCmdlet.ParameterSetName -eq "Named") {
             Write-Verbose "Using named character sets"
             foreach ($Type in $Characters) {
                 Write-Verbose "Adding $Type to character set"
-                $CharacterSet += $CharMap.$Type
+                $CharacterSet += [CharMap]::$Type
             }
         }
 
         # In case someone passes an empty array of characters
         if ($CharacterSet.Length -le 1) {
             Write-Warning "Not enough characters supplied; using AlphaNumeric set"
-            $CharacterSet = $CharMap.AlphaNumeric
+            $CharacterSet = [CharMap]::AlphaNumeric
         }
         
         # This is the array of bytes that will get randomized
