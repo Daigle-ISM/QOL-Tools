@@ -211,25 +211,38 @@ function Time {
     $ScriptBlock = [scriptblock]::Create(($args -Join " ") + " | Out-Default")
     Measure-Command $ScriptBlock
 }
-
-# Removes orphaned branches, does not affect branches that never had remotes
 function Clean-Branches {
     <#
     .SYNOPSIS
-    Deletes any local branches for which the remote has been deleted
+        Deletes any local branches for which the remote has been deleted
     .DESCRIPTION
-    Switches you to your main branch (master or main)
+        Switches you to your main branch, runs a git pull, and deletes any local branches for which the remote has been deleted
     .NOTES
-    Assumes it is being run in a git repository
+        Assumes it is being run in a git repository
+        
+        Assumes the remote is named 'origin'
+    .PARAMETER Force
+        Uses git branch -D to permanently delete branches whether or not git finds them to be fully merged
 
-    Assumes that your default branch is either master or main. If you have non-default branches with these names it may check out the wrong branch
-
-    Uses git branch -d, not git branch -D. If a branch is not fully merged, you will receive a warning
+        This can result in the loss of data if you're not careful!
     #>
-    git fetch --prune
-    git checkout ((git branch -vv).Split("`n") -replace "^\* " | Foreach-Object {$_.Trim().Split(" ")[0]} | Where-Object {$_ -eq "main" -or $_ -eq "master"})
-    git pull
-    (git branch -vv).Split("`n") -replace "^\* "| Where-Object {$_ -match '\[.*gone\]'} | Foreach-Object {git branch -d $_.Trim().Split(" ")[0]}
+    [CmdletBinding()]
+    param (
+        [Parameter()]
+        [Switch]
+        $Force
+    )
+    if ($Force) {
+        $d = "-D"
+    }
+    else {
+        $d = "-d"
+    }
+        $DefaultBranch = [System.Text.RegularExpressions.Regex]::Matches((git symbolic-ref refs/remotes/origin/HEAD), "[^/]+$").Value
+        git checkout $DefaultBranch 2>&1
+        git pull --prune 2>&1
+        (git branch -vv 2>&1).Split("`n") -replace "^\* "| Where-Object {$_ -match '\[.*gone\]'} | Foreach-Object {git branch $d $_.Trim().Split(" ")[0] 2>&1}
+    }
 }
 function rode {
     <#
