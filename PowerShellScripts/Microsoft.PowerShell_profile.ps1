@@ -350,6 +350,7 @@ function Tail {
         # Set the current position to the end of the stream -1 so the ReadByte() can read the last byte
         $FS.Position = $FS.Length - 1
 
+        $Prev = $false
         for ($i = 0; $i -lt $Lines;) {
             try {
                 if ($FS.Position -eq 0) {# We are at the beginning of the file
@@ -358,19 +359,21 @@ function Tail {
                 # Move to the previous byte
                 $FS.Position-=1
                 # If the current character is a return character increment the counter
-                [int]$Char = $FS.ReadByte()
+                $Char = $FS.ReadByte()
                 # ReadByte() advances the position by a byte, move back to the current byte
                 $FS.Position-=1
-                $Prev = $false
-                if ($Char -eq 10) {
-                    $i++
-                    $Prev = $true
-                }
-                elseif ($Char -eq 13 -and $Prev -eq $false) {
+                if ($Char -eq 13 -and $Prev -eq $false) {
                     $i++
                 }
                 elseif ($Char -eq "`0") {
                     $i++
+                }
+                if ($Char -eq 10) {
+                    $i++
+                    $Prev = $true
+                }
+                else {
+                    $Prev = $false
                 }
             }
             catch {
