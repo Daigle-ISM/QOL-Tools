@@ -1,9 +1,9 @@
 set ruler
 set number
 set ignorecase
-set nobackup nowritebackup
+set nobackup nowritebackup noswapfile
 set clipboard=unnamed
-silent !echo Hello
+set shortmess-=S
 syntax on
 nnoremap <del> "_x
 vnoremap <del> "_x
@@ -25,6 +25,7 @@ if has("win32")
 	set shellcmdflag=-NoLogo\ -NoProfile\ -NonInteractive\ -command
 endif
 
+
 " This corrects handling for the cursor in Windows terminal since commit df5320c439e9a7f7bf1ebff3cb455d45e223547a
 " Note: This should be set after `set termguicolors` or `set t_Co=256`.
 if &term =~ 'xterm' || &term == 'win32'
@@ -35,4 +36,5 @@ if &term =~ 'xterm' || &term == 'win32'
 	let &t_ti ..= "\e[1 q"   "blink block
 	let &t_te ..= "\e[0 q"
 	" default (depends on terminal, normally blink block)
+	" This is unrelated, but needed
 endif
