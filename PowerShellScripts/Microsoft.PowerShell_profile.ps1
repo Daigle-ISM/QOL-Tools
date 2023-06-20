@@ -437,6 +437,69 @@ function Tail {
         return $RetVal
     }
 }
+
+function Link-DotFiles {
+    <#
+    .SYNOPSIS
+        Creates hardlinks to your dotfiles in the specified directory
+    .DESCRIPTION
+        Used for tracking your dotfiles in a git repository. This function will create hardlinks to your dotfiles in the specified directory, allowing you to track them in a git repository without having to move them out of or creating a repo in your home directory
+    .NOTES
+        Hardlinks are used so git tracks your files correctly. Git can only track files anyway.
+
+        Edit the $ExcludedFiles variable to exclude files from being linked
+    .EXAMPLE
+        Link-Dotfiles C:\Users\Daigle-ISM\source\dotfiles\
+        Creates hardlinks to your dotfiles in the specified directory
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true,Position=1)]
+        [System.IO.DirectoryInfo]
+        $Destination
+    )
+    begin {
+        $ExcludedFiles = @(
+            ".lesshst"
+            ".viminfo"
+            ".directory"
+            ".vscode-insiders"
+        )
+        # I thought I could just use Get-ChildItem -Path ~ -Filter ".*" -Exclude $ExcludedFiles
+        # This doesn't work. It returns nothing, and I am convinced that is incorrect behaviour
+        # So whatever, we're using RegEx. The only thing that works around here
+        [array]$DotFiles = Get-ChildItem ~ -Exclude $ExcludedFiles | Where-Object Name -Match "^\."
+    }
+    
+    process {
+        foreach ($File in $DotFiles) {
+            # You would think that you could do this together with the above Get-ChildItem
+            # But after trying to figure out the filter syntax and all that nonsense
+            # I realized I was better off doing this myself
+            $Link = Join-Path $Destination.FullName $File.Name
+            if ($File.PSIsContainer) {
+                if (!(Test-Path $Link)) {
+                    New-Item -ItemType Directory -Path $Link
+                }
+
+                foreach ($ChildFile in Get-ChildItem $File -Recurse -File)
+                {
+                    $ChildLink = Join-Path $Link $ChildFile.Name
+                    if (!(Test-Path $ChildLink)) {
+                        New-Item -ItemType HardLink -Path $ChildLink  -Target $ChildFile.FullName
+                    }
+                }
+            }
+            elseif (!(Test-Path $Link)) {
+                    New-Item -ItemType HardLink -Path $Link -Target $File.FullName
+            }
+        }
+    }
+    
+    end {
+        
+    }
+}
 #endregion
 
 #region actions
@@ -458,5 +521,6 @@ New-Alias -Name touch -Value New-Item
 New-Psdrive -name hku -PSProvider Registry -Root HKEY_USERS | Out-Null
 # Maps HKEY_CLASSES_ROOT to hkcr:\
 New-Psdrive -name hkcr -PSProvider Registry -Root HKEY_CLASSES_ROOT | Out-Null
-
+# Create hard links to dotfiles
+Link-DotFiles -Destination "~\source\dotfiles\"
 #endregion
