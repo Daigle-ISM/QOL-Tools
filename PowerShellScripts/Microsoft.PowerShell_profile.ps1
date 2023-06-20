@@ -220,7 +220,7 @@ function Clean-Branches {
     .NOTES
         Assumes it is being run in a git repository
         
-        Assumes the remote is named 'origin'
+        Not tested on repos with multiple remotes, almost certainly would not work
     .PARAMETER Force
         Uses git branch -D to permanently delete branches whether or not git finds them to be fully merged
 
@@ -232,16 +232,33 @@ function Clean-Branches {
         [Switch]
         $Force
     )
+    # Used for the git branch delete command, lowercase 'd' won't delete a branch if git thinks it isn't fully merged
     if ($Force) {
         $d = "-D"
     }
     else {
         $d = "-d"
     }
-        $DefaultBranch = [System.Text.RegularExpressions.Regex]::Matches((git symbolic-ref refs/remotes/origin/HEAD), "[^/]+$").Value
-        git checkout $DefaultBranch 2>&1
-        git pull --prune 2>&1
-        (git branch -vv 2>&1).Split("`n") -replace "^\* "| Where-Object {$_ -match '\[.*gone\]'} | Foreach-Object {git branch $d $_.Trim().Split(" ")[0] 2>&1}
+
+    $Remote = git remote show
+
+    if (!([string]::IsNullOrWhiteSpace($Remote))) {
+        # Get the latest HEAD from the remote
+        git remote set-head $Remote --auto
+        # Find the default branch. It will be after a directory separator, /
+        $DefaultBranch = (git rev-parse --abbrev-ref $Remote/HEAD).Split("/")[-1]
+        if (!([string]::IsNullOrWhiteSpace($DefaultBranch))) {
+            git checkout $DefaultBranch 2>&1
+            git pull --prune 2>&1
+            # Delete branches for which the remote is gone
+            (git branch -vv 2>&1).Split("`n") -replace "^\* "| Where-Object {$_ -match '\[.*gone\]'} | Foreach-Object {git branch $d $_.Trim().Split(" ")[0] 2>&1}
+        }
+        else {
+            Write-Error "Unable to determine default branch."
+        }
+    }
+    else {
+        Write-Warning "Repository doesn't have a remote; nothing to clean"
     }
 }
 function rode {
