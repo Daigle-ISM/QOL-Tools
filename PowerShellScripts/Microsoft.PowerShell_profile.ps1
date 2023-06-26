@@ -17,7 +17,7 @@ Function Enable-PoshGit {
         Import-Module posh-git
     }
     # If running as an administrator
-    elseif (([System.Security.Principal.WindowsIdentity]::GetCurrent()).groups -match "S-1-5-32-544")  {
+    elseif (([System.Security.Principal.WindowsIdentity]::GetCurrent()).groups -match "S-1-5-32-544") {
         Write-Progress -Activity "Posh-Git" -Status "Installing Posh-Git"
         Write-Progress -Activity "Posh-Git" -Status "Setting PSGallery to trusted"
         Set-PSRepository -Name 'PSGallery' -InstallationPolicy Trusted
@@ -72,29 +72,29 @@ function Get-RandomString {
         ☺♣♦☻☻
         But passed as an integer or an array of integers (int[]) the integers refer to specific characters
     #>
-    [CmdletBinding(DefaultParameterSetName="Named")]
+    [CmdletBinding(DefaultParameterSetName = "Named")]
     param (
-        [Parameter(Position=1)]
+        [Parameter(Position = 1)]
         [ValidateScript({
-            # OUT OF RANGE. Secure strings have a maximum length of 65536
-            $_ -gt 1 -and $_ -le 1000000000 -and !($AsSecureString -and $_ -gt 65536)
-        })]
+                # OUT OF RANGE. Secure strings have a maximum length of 65536
+                $_ -gt 1 -and $_ -le 1000000000 -and !($AsSecureString -and $_ -gt 65536)
+            })]
         [int]
         $Length = (Get-Random -Minimum 5 -Maximum 20),
-        [Parameter(Position=2)]
+        [Parameter(Position = 2)]
         [switch]
         $AsSecureString,
-        [Parameter(ParameterSetName="Named")]
+        [Parameter(ParameterSetName = "Named")]
         # If I wasn't making this compatible with PowerShell 5 I would be using IValidateSetValuesGenerator, see more info here: https://adamtheautomator.com/powershell-validateset/
         # I'm instead doing everything the hard way, as per https://stackoverflow.com/a/74778399
-        [ValidateScript({return [bool]([CharMap]::GetValidValues().Contains($_))})]
+        [ValidateScript({ return [bool]([CharMap]::GetValidValues().Contains($_)) })]
         [ArgumentCompleter({ 
-            param($cmd, $param, $wordToComplete) 
-            [CharMap]::GetValidValues() | Where-Object {$_.ToLower().StartsWith($WordToComplete.ToLower())}
-        })]
+                param($cmd, $param, $wordToComplete) 
+                [CharMap]::GetValidValues() | Where-Object { $_.ToLower().StartsWith($WordToComplete.ToLower()) }
+            })]
         [string[]]
         $Characters = "AlphaNumeric",
-        [Parameter(ParameterSetName="Explicit")]
+        [Parameter(ParameterSetName = "Explicit")]
         [char[]]
         $CharacterSet = @()
     )
@@ -140,7 +140,7 @@ function Get-RandomString {
         $Bytes = [Byte[]]::New($Length)
         
         # The securestring that will eventually be returned
-        if ($AsSecureString){
+        if ($AsSecureString) {
             Write-Verbose "Creating secure string"
             $Output = [securestring]::New()
         }
@@ -170,14 +170,14 @@ function Get-RandomString {
         # SecureString has a limitation of uint16.MaxValue anyway, no optimization necessary
         if ($Output.GetType() -eq [securestring]) {
             foreach ($Byte in $Bytes) {
-                $Output.AppendChar([char]($CharacterSet[$Byte%$CharacterSet.Length]))
+                $Output.AppendChar([char]($CharacterSet[$Byte % $CharacterSet.Length]))
             }
         }
         elseif ($Output.GetType() -eq [string]) {
             # Using a char array for performance. This is significantly faster than appending to a string
             $ca = [char[]]::new($Bytes.Count)
             for ($i = 0; $i -lt $Bytes.Count; $i++) {
-                $ca[$i] = [char]($CharacterSet[$Bytes[$i]%$CharacterSet.Length])
+                $ca[$i] = [char]($CharacterSet[$Bytes[$i] % $CharacterSet.Length])
             }
             Write-Verbose "Building string"
             # RIP our memory footprint
@@ -251,7 +251,7 @@ function Clean-Branches {
             git checkout $DefaultBranch 2>&1
             git pull --prune 2>&1
             # Delete branches for which the remote is gone
-            (git branch -vv 2>&1).Split("`n") -replace "^\* "| Where-Object {$_ -match '\[.*gone\]'} | Foreach-Object {git branch $d $_.Trim().Split(" ")[0] 2>&1}
+            (git branch -vv 2>&1).Split("`n") -replace "^\* " | Where-Object { $_ -match '\[.*gone\]' } | Foreach-Object { git branch $d $_.Trim().Split(" ")[0] 2>&1 }
         }
         else {
             Write-Error "Unable to determine default branch."
@@ -273,9 +273,9 @@ function rode {
         rode .*settings\.xml$
         Recursively opens any files ending with settings.xml
     #>
-	foreach ($arg in $args) {
-		code (Get-ChildItem -Recurse | Where-Object Name -match $arg | Select-Object -ExpandProperty Fullname)
-	}
+    foreach ($arg in $args) {
+        code (Get-ChildItem -Recurse | Where-Object Name -match $arg | Select-Object -ExpandProperty Fullname)
+    }
 }
 function helpmsg {
     <#
@@ -309,12 +309,12 @@ function helpmsg {
     #>
     [CmdletBinding()]
     param (
-        [Parameter(Position=1,Mandatory=$true)]
+        [Parameter(Position = 1, Mandatory = $true)]
         [string]
         $Hex
     )
     # Add leading 0's until the string is at least 4 characters long
-    $Hex = $Hex.PadLeft(4,"0")
+    $Hex = $Hex.PadLeft(4, "0")
 
     # Strip anything before the last four characters and convert to an unsigned integer
     $Dec = [uint32]("0x" + $Hex.Substring($Hex.Length - 4, 4))
@@ -345,11 +345,11 @@ function Tail {
     [CmdletBinding()]
     param (
         # The path of the file to tail
-        [Parameter(Mandatory=$true,ParameterSetName="Path",Position=1)]
+        [Parameter(Mandatory = $true, ParameterSetName = "Path", Position = 1)]
         [string]
         $Path,
         # The number of lines to read
-        [Parameter(Position=2)]
+        [Parameter(Position = 2)]
         [int]
         $Lines = 10,
         # Output appended data as the file grows
@@ -382,15 +382,16 @@ function Tail {
         $Prev = $false
         for ($i = 0; $i -lt $Lines;) {
             try {
-                if ($FS.Position -eq 0) {# We are at the beginning of the file
+                if ($FS.Position -eq 0) {
+                    # We are at the beginning of the file
                     break
                 }
                 # Move to the previous byte
-                $FS.Position-=1
+                $FS.Position --
                 # If the current character is a return character increment the counter
                 $Char = $FS.ReadByte()
                 # ReadByte() advances the position by a byte, move back to the current byte
-                $FS.Position-=1
+                $FS.Position --
                 if ($Char -eq 13 -and $Prev -eq $false) {
                     $i++
                 }
@@ -411,15 +412,14 @@ function Tail {
         }
         # If it stopped on a linebreak (and not at the beginning of the file) do not read that break
         if ($SR.BaseStream.Position -ne 0) {
-            $SR.BaseStream.Position+=1
+            $SR.BaseStream.Position --
         }
     }
     process {
         try {
             do {
                 # Using ctrl+c to kill this loop means we can't get output to the pipeline, so we need another option
-                if ([Console]::KeyAvailable)
-                {
+                if ([Console]::KeyAvailable) {
                     if ([Console]::ReadKey($true).KeyChar -eq "q") {
                         break
                     }
@@ -471,7 +471,7 @@ function Link-DotFiles {
     #>
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true,Position=1)]
+        [Parameter(Mandatory = $true, Position = 1)]
         [System.IO.DirectoryInfo]
         $Destination
     )
@@ -499,8 +499,7 @@ function Link-DotFiles {
                     New-Item -ItemType Directory -Path $Link
                 }
 
-                foreach ($ChildFile in Get-ChildItem $File -Recurse -File)
-                {
+                foreach ($ChildFile in Get-ChildItem $File -Recurse -File) {
                     $ChildLink = Join-Path $Link $ChildFile.Name
                     if (!(Test-Path $ChildLink)) {
                         New-Item -ItemType HardLink -Path $ChildLink  -Target $ChildFile.FullName
@@ -508,7 +507,7 @@ function Link-DotFiles {
                 }
             }
             elseif (!(Test-Path $Link)) {
-                    New-Item -ItemType HardLink -Path $Link -Target $File.FullName
+                New-Item -ItemType HardLink -Path $Link -Target $File.FullName
             }
         }
     }
