@@ -38,8 +38,8 @@ if ($DirectorySeparatorChar -eq 0) {
         $DirectorySeparatorChar = [System.IO.Path]::DirectorySeparatorChar;
     }
 }
-$ParentSegments = $PotentialParent.FullName.Split($DirectorySeparatorChar)
-$ChildSegments = $PotentialChild.FullName.Split($DirectorySeparatorChar)
+$ParentSegments = ($PotentialParent.FullName).TrimEnd($DirectorySeparatorChar).Split($DirectorySeparatorChar)
+$ChildSegments = ($PotentialChild.FullName).TrimEnd($DirectorySeparatorChar).Split($DirectorySeparatorChar)
 # If all the parent segments equal the child segments, the path is a match
 for ($i = 0; $i -lt $ParentSegments.Count; $i++) {
     if ($CaseSensitive) {
