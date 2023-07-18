@@ -26,7 +26,8 @@ param (
     [char]
     $DirectorySeparatorChar = 0,
     [bool]
-    $CaseSensitive = !($IsWindows)
+    # Default to case insensitive on Windows. Non-core is only available on Windows, and doesn't have the $IsWindows variable
+    $CaseSensitive = $PSEdition -eq 'Core' -and !($IsWindows)
 )
 # If the character has not been provided, chooses the alternate directory character only if it is found in the child path, but the primary directory character is not
 if ($DirectorySeparatorChar -eq 0) {
