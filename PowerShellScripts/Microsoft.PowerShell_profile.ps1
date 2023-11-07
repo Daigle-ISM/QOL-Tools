@@ -485,7 +485,7 @@ function Link-DotFiles {
         # I thought I could just use Get-ChildItem -Path ~ -Filter ".*" -Exclude $ExcludedFiles
         # This doesn't work. It returns nothing, and I am convinced that is incorrect behaviour
         # So whatever, we're using RegEx. The only thing that works around here
-        [array]$DotFiles = Get-ChildItem ~ -Exclude $ExcludedFiles | Where-Object Name -Match "^\."
+        [array]$DotFiles = Get-ChildItem $env:USERPROFILE -Exclude $ExcludedFiles | Where-Object Name -Match "^\."
     }
     
     process {
@@ -538,5 +538,5 @@ New-Psdrive -name hku -PSProvider Registry -Root HKEY_USERS | Out-Null
 # Maps HKEY_CLASSES_ROOT to hkcr:\
 New-Psdrive -name hkcr -PSProvider Registry -Root HKEY_CLASSES_ROOT | Out-Null
 # Create hard links to dotfiles
-Link-DotFiles -Destination "~\source\dotfiles\"
+Link-DotFiles -Destination "$env:USERPROFILE\source\dotfiles\"
 #endregion
