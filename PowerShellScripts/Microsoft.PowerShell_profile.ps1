@@ -511,10 +511,78 @@ function Link-DotFiles {
             }
         }
     }
-    
-    end {
-        
+}
+
+function Get-UninstallKeys {
+    <#
+    .SYNOPSIS
+        Lists all uninstall reg keys
+    .DESCRIPTION
+        Lists all registry keys in hklm:\software\microsoft\windows\currentversion\uninstall and hklm:\software\wow6432node\microsoft\windows\currentversion\uninstall
+    .PARAMETER Filter
+        Specifies a filter to qualify the Path parameter. The FileSystem (../Microsoft.PowerShell.Core/About/about_FileSystem_Provider.md)provider is the only installed PowerShell provider that supports filters. Filters are more efficient than other parameters. The provider applies filter when the cmdlet gets the objects rather than having PowerShell filter the objects after they're retrieved. The filter string is passed to the .NET API to enumerate files. The API only supports `*` and `?` wildcards.
+    .PARAMETER Include
+        Specifies an array of one or more string patterns to be matched as the cmdlet gets child items. Any matching item is included in the output. Enter a path element or pattern, such as `"*.txt"`. Wildcard characters are permitted. The Include parameter is effective only when the command includes the contents of an item, such as `C:\Windows*`, where the wildcard character specifies the contents of the `C:\Windows` directory.
+
+        The Include and Exclude parameters can be used together. However, the exclusions are applied after the inclusions, which can affect the final output.
+    .PARAMETER Exclude
+        Specifies an array of one or more string patterns to be matched as the cmdlet gets child items. Any matching item is excluded from the output. Enter a path element or pattern, such as ` .txt` or `A `. Wildcard characters are accepted.
+
+        A trailing asterisk (` `) in the Path * parameter is optional. For example, `-Path C:\Test\Logs` or `-Path C:\Test\Logs\ `. If a trailing asterisk (``) is included, the command recurses into the Path parameter's subdirectories. Without the asterisk (` `), the contents of the Path * parameter are displayed. More details are included in Example 5 and the Notes section.
+
+        The Include and Exclude parameters can be used together. However, the exclusions are applied after the inclusions, which can affect the final output.
+    .PARAMETER Name
+        Gets only the names of the items in the location. The output is a string object that can be sent down the pipeline to other commands. The names returned are relative to the value of the Path parameter.
+    .PARAMETER Property
+        The name of a property to filter by. Used to filter results without having to chain Where-Object and Get-ItemProperty.
+
+        Uses the -like operator for filtering.
+    .PARAMETER PropertyFilter
+        The value to compare to the property value
+    .EXAMPLE
+        Get-UninstallKeys
+        Gets all of the uninstallation registry keys on the system
+    .EXAMPLE
+        Get-UninstallKeys | Where-Object {(Get-ItemProperty $_.PSPath).Displayname -Like "*Adobe*"}
+        Filter the registry keys by their display name
+    .Example
+        Get-UninstallKeys -Property DisplayName -PropertyFilter "*Adobe*"
+        Filter the registry keys by their display name. Exactly the same output as above
+    #>
+    [CmdletBinding(DefaultParameterSetName="Default")]
+    param (
+        [SupportsWildcards()]
+        [string[]]
+        $Filter,
+        [SupportsWildcards()]
+        [string[]]
+        $Include,
+        [SupportsWildcards()]
+        [String[]]
+        $Exclude,
+        [switch]
+        $Name,
+        [Parameter(ParameterSetName="PropertyFilter", Mandatory)]
+        [string]
+        $Property,
+        [Parameter(ParameterSetName="PropertyFilter", Mandatory)]
+        [object]
+        $PropertyFilter
+    )
+
+    $Splat = @{
+        Filter = $Filter
+        Include = $Include
+        Exclude = $Exclude
+        Name = $Name
+    } 
+
+    $RetVal = Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" @Splat
+    $RetVal += Get-ChildItem "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall" @Splat
+    if ($PropertyFilter) {
+        $RetVal = $RetVal | Where-Object { (Get-ItemProperty $_.PSPath).$Property -Like $PropertyFilter }
     }
+    return $RetVal
 }
 #endregion
 
