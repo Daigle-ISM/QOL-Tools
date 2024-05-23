@@ -221,37 +221,47 @@ function Clean-Branches {
         Assumes it is being run in a git repository
         
         Not tested on repos with multiple remotes, almost certainly would not work
-    .PARAMETER Force
-        Uses git branch -D to permanently delete branches whether or not git finds them to be fully merged
-
-        This can result in the loss of data if you're not careful!
     #>
-    [CmdletBinding()]
-    param (
-        [Parameter()]
-        [Switch]
-        $Force
-    )
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param ()
     # Used for the git branch delete command, lowercase 'd' won't delete a branch if git thinks it isn't fully merged
-    if ($Force) {
-        $d = "-D"
-    }
-    else {
-        $d = "-d"
-    }
-
     $Remote = git remote show
+
+    Write-Verbose "Remote: $Remote"
 
     if (!([string]::IsNullOrWhiteSpace($Remote))) {
         # Get the latest HEAD from the remote
-        git remote set-head $Remote --auto
+        if ($PSCmdlet.ShouldProcess("Get the latest HEAD from the remote ($Remote)")) {
+            git remote set-head $Remote --auto
+        }
         # Find the default branch. It will be after a directory separator, /
         $DefaultBranch = (git rev-parse --abbrev-ref $Remote/HEAD).Split("/")[-1]
+
+        Write-Verbose "Default branch: $DefaultBranch"
+
         if (!([string]::IsNullOrWhiteSpace($DefaultBranch))) {
-            git checkout $DefaultBranch 2>&1
-            git pull --prune 2>&1
-            # Delete branches for which the remote is gone
-            (git branch -vv 2>&1).Split("`n") -replace "^\* " | Where-Object { $_ -match '\[.*gone\]' } | Foreach-Object { git branch $d $_.Trim().Split(" ")[0] 2>&1 }
+            if ($PSCmdlet.ShouldProcess("Switch to the default branch ($DefaultBranch)")) {
+                git checkout $DefaultBranch 2>&1
+            }
+            if ($PSCmdlet.ShouldProcess("Pull the latest changes from the default branch ($DefaultBranch)")) {
+                git pull --prune 2>&1
+            }
+            (git branch -vv 2>&1).Split("`n") -replace "^\* " | Where-Object { $_ -match '\[.*gone\]' } | Foreach-Object {
+                $Branch = $_.Trim().Split(" ")[0]
+                if ($PSCmdlet.ShouldProcess("Delete branch $Branch")) {
+                    Write-Verbose "Deleting branch $Branch"
+                    $res = git branch -d $Branch 2>&1
+                }
+                if ($res -like "*not fully merged*") {
+                    if ($PSCmdlet.ShouldContinue("Branch $Branch is not fully merged. Are you sure you want to delete it?", "Branch not merged")) {
+                        Write-Verbose "Hard deleting branch $Branch"
+                        git branch -D $Branch 2>&1
+                    }
+                }
+                else {
+                    Write-Error $res
+                }
+            }
         }
         else {
             Write-Error "Unable to determine default branch."
@@ -469,7 +479,7 @@ function Link-DotFiles {
         Link-Dotfiles C:\Users\Daigle-ISM\source\dotfiles\
         Creates hardlinks to your dotfiles in the specified directory
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess=$true)]
     param (
         [Parameter(Mandatory = $true, Position = 1)]
         [System.IO.DirectoryInfo]
@@ -549,7 +559,7 @@ function Get-UninstallKeys {
         Get-UninstallKeys -Property DisplayName -PropertyFilter "*Adobe*"
         Filter the registry keys by their display name. Exactly the same output as above
     #>
-    [CmdletBinding(DefaultParameterSetName="Default")]
+    [CmdletBinding(DefaultParameterSetName = "Default")]
     param (
         [SupportsWildcards()]
         [string[]]
@@ -562,19 +572,19 @@ function Get-UninstallKeys {
         $Exclude,
         [switch]
         $Name,
-        [Parameter(ParameterSetName="PropertyFilter", Mandatory)]
+        [Parameter(ParameterSetName = "PropertyFilter", Mandatory)]
         [string]
         $Property,
-        [Parameter(ParameterSetName="PropertyFilter", Mandatory)]
+        [Parameter(ParameterSetName = "PropertyFilter", Mandatory)]
         [object]
         $PropertyFilter
     )
 
     $Splat = @{
-        Filter = $Filter
+        Filter  = $Filter
         Include = $Include
         Exclude = $Exclude
-        Name = $Name
+        Name    = $Name
     } 
 
     $RetVal = Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" @Splat
