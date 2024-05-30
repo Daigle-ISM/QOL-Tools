@@ -77,7 +77,7 @@ function Get-RandomString {
         [Parameter(Position = 1)]
         [ValidateScript({
                 # OUT OF RANGE. Secure strings have a maximum length of 65536
-                $_ -gt 1 -and $_ -le 1000000000 -and !($AsSecureString -and $_ -gt 65536)
+                $_ -gt 0 -and $_ -le 1000000000 -and !($AsSecureString -and $_ -gt 65536)
             })]
         [int]
         $Length = (Get-Random -Minimum 5 -Maximum 20),
