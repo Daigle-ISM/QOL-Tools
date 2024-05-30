@@ -111,7 +111,7 @@ function Get-RandomString {
             static $Numbers = (48..57)
             static $LowerLetters = (97..122)
             static $UpperLetters = (65..90)
-            static $Symbols = (33..47) + (58..64) + (91..96) + (123..126)
+            static $Symbols = (32..47) + (58..64) + (91..96) + (123..126)
             static $Letters = [CharMap]::LowerLetters + [CharMap]::UpperLetters
             static $AlphaNumeric = [CharMap]::Numbers + [CharMap]::Letters
             static $All = [CharMap]::AlphaNumeric + [CharMap]::Symbols
