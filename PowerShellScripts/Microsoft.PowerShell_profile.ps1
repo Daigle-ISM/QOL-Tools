@@ -292,7 +292,7 @@ function helpmsg {
     .SYNOPSIS
         Looks up the net helpmsg error code for a given hex number
     .DESCRIPTION
-        Treats the last four characters of a given string as a hexidecimal word, converts it to decimal, and runs net helpmsg on it.
+        Treats the last four characters of a given string as a hexadecimal word, converts it to decimal, and runs net helpmsg on it.
     .EXAMPLE
         helpmsg 5
         Access is denied.
